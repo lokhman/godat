@@ -1,5 +1,9 @@
 # godat - Simple data serializer for Go
 
+[![Build Status](https://travis-ci.org/lokhman/godat.svg?branch=master)](https://travis-ci.org/lokhman/godat)
+[![codecov](https://codecov.io/gh/lokhman/godat/branch/master/graph/badge.svg)](https://codecov.io/gh/lokhman/godat)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ## Install
 
 	go get github.com/lokhman/godat
