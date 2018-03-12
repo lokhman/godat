@@ -15,12 +15,12 @@
     import "github.com/lokhman/godat"
     
     func main() {
-        serializedBytes, err := Marshal(anyData)
+        serializedBytes, err := godat.Marshal(anyData)
         if err != nil {
             log.Fatal(err)
         }
         
-        err = Unmarshal(serializedBytes, &unserializedValue)
+        err = godat.Unmarshal(serializedBytes, &unserializedValue)
         if err != nil {
             log.Fatal(err)
         }
@@ -30,7 +30,7 @@
 	
 ## Tests
 
-`go test` is used for testing.
+Use `go test` for testing.
 
 ## License
 
