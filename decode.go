@@ -383,10 +383,8 @@ func (d *Decoder) DecodeValue(v reflect.Value) error {
 	}
 
 	p := make([]byte, 1)
-	if n, err := d.r.Read(p); err != nil {
+	if _, err := d.r.Read(p); err != nil {
 		return err
-	} else if n != 1 {
-		return io.EOF
 	}
 
 	v = v.Elem()
