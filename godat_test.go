@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -47,9 +48,9 @@ var (
 	TestArray16 [math.MaxUint16]*bool
 	TestArray32 [math.MaxUint16 + 1]interface{}
 
-	TestMap8  map[int]bool
-	TestMap16 map[int]bool
-	TestMap32 map[int]bool
+	TestMap8  map[uint8]bool
+	TestMap16 map[uint16]bool
+	TestMap32 map[uint32]bool
 )
 
 func init() {
@@ -57,17 +58,30 @@ func init() {
 	TestArray16[0] = TestPtr
 	TestArray32[0] = TestInterface
 
-	TestMap8 = make(map[int]bool)
-	TestMap16 = make(map[int]bool)
-	TestMap32 = make(map[int]bool)
-	for i := 0; i < math.MaxUint16+1; i++ {
-		if i > math.MaxUint16 {
-			TestMap32[i] = TestBool
-		}
-		if i > math.MaxUint8 {
-			TestMap16[i] = TestBool
-		}
+	TestMap8 = make(map[uint8]bool)
+	for i := uint8(0); i < math.MaxUint8; i++ {
 		TestMap8[i] = TestBool
+	}
+	TestMap16 = make(map[uint16]bool)
+	for i := uint16(0); i < math.MaxUint16; i++ {
+		TestMap16[i] = TestBool
+	}
+	TestMap32 = make(map[uint32]bool)
+	for i := uint32(0); i < math.MaxUint16+1; i++ {
+		TestMap32[i] = TestBool
+	}
+}
+
+func randomFilename() string {
+	randBytes := make([]byte, 16)
+	rand.Read(randBytes)
+	n := hex.EncodeToString(randBytes)
+	return filepath.Join(os.TempDir(), n)
+}
+
+func assertEqual(t *testing.T, x, y interface{}) {
+	if !reflect.DeepEqual(x, y) {
+		t.FailNow()
 	}
 }
 
@@ -133,9 +147,9 @@ type TestInputArray struct {
 }
 
 type TestInputObject struct {
-	A map[int]bool
-	B map[int]bool
-	C map[int]bool
+	A map[uint8]bool
+	B map[uint16]bool
+	C map[uint32]bool
 }
 
 type TestInputMarshaler struct {
@@ -278,6 +292,8 @@ func TestMarshalNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestMarshalBool(t *testing.T) {
@@ -292,6 +308,8 @@ func TestMarshalBool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalBoolInterfaceError(t *testing.T) {
@@ -306,6 +324,7 @@ func TestUnmarshalBoolInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalBoolIncompatibleError(t *testing.T) {
@@ -320,6 +339,7 @@ func TestUnmarshalBoolIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalInt(t *testing.T) {
@@ -334,34 +354,40 @@ func TestMarshalInt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
-func TestUnmarshalIntUint64(t *testing.T) {
-	x := TestUint64
+func TestUnmarshalIntUint(t *testing.T) {
+	x := TestInt64
 	data, err := Marshal(x)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var y int64
+	var y uint64
 	err = Unmarshal(data, &y)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, uint64(x), y)
 }
 
-func TestUnmarshalIntFloat64(t *testing.T) {
-	x := TestFloat64
-	data3, err := Marshal(x)
+func TestUnmarshalIntFloat(t *testing.T) {
+	x := TestInt64
+	data, err := Marshal(x)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var y int64
-	err = Unmarshal(data3, &y)
+	var y float64
+	err = Unmarshal(data, &y)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, float64(x), y)
 }
 
 func TestUnmarshalIntOverflowError(t *testing.T) {
@@ -376,6 +402,7 @@ func TestUnmarshalIntOverflowError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalIntPtr(t *testing.T) {
@@ -390,6 +417,8 @@ func TestUnmarshalIntPtr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, int64(x), *y)
 }
 
 func TestUnmarshalIntInterface(t *testing.T) {
@@ -404,6 +433,8 @@ func TestUnmarshalIntInterface(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, int64(x), y.(int64))
 }
 
 func TestUnmarshalIntInterfaceError(t *testing.T) {
@@ -418,6 +449,7 @@ func TestUnmarshalIntInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalIntIncompatibleError(t *testing.T) {
@@ -432,6 +464,7 @@ func TestUnmarshalIntIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalUint(t *testing.T) {
@@ -446,34 +479,40 @@ func TestMarshalUint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
-func TestUnmarshalUintInt64(t *testing.T) {
-	x := TestInt64
+func TestUnmarshalUintInt(t *testing.T) {
+	x := TestUint64
 	data, err := Marshal(x)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var y uint64
+	var y int64
 	err = Unmarshal(data, &y)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, int64(x), y)
 }
 
-func TestUnmarshalUintFloat64(t *testing.T) {
-	x := TestFloat64
+func TestUnmarshalUintFloat(t *testing.T) {
+	x := TestUint64
 	data, err := Marshal(x)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var y uint64
+	var y float64
 	err = Unmarshal(data, &y)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, float64(x), y)
 }
 
 func TestUnmarshalUintOverflowError(t *testing.T) {
@@ -488,6 +527,7 @@ func TestUnmarshalUintOverflowError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalFloat(t *testing.T) {
@@ -502,43 +542,49 @@ func TestMarshalFloat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
-func TestMarshalFloatError(t *testing.T) {
+func TestUnmarshalFloatInt(t *testing.T) {
+	x := TestFloat64
+	data3, err := Marshal(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var y int64
+	err = Unmarshal(data3, &y)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertEqual(t, int64(x), y)
+}
+
+func TestUnmarshalFloatUint(t *testing.T) {
+	x := TestFloat64
+	data, err := Marshal(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var y uint64
+	err = Unmarshal(data, &y)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertEqual(t, uint64(x), y)
+}
+
+func TestMarshalFloatNaNError(t *testing.T) {
 	x := math.NaN()
 	_, err := Marshal(x)
 	if err == nil {
 		t.FailNow()
 	}
 	_ = err.Error()
-}
-
-func TestUnmarshalFloatInt64(t *testing.T) {
-	x := TestInt64
-	data, err := Marshal(x)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var y float64
-	err = Unmarshal(data, &y)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestUnmarshalFloatUint64(t *testing.T) {
-	x := TestUint64
-	data, err := Marshal(x)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var y float64
-	err = Unmarshal(data, &y)
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestUnmarshalFloatOverflowError(t *testing.T) {
@@ -553,6 +599,7 @@ func TestUnmarshalFloatOverflowError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalString(t *testing.T) {
@@ -567,6 +614,8 @@ func TestMarshalString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalStringSlice(t *testing.T) {
@@ -581,6 +630,8 @@ func TestUnmarshalStringSlice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, []byte(x), y)
 }
 
 func TestUnmarshalStringSliceError(t *testing.T) {
@@ -595,6 +646,7 @@ func TestUnmarshalStringSliceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringBool(t *testing.T) {
@@ -609,6 +661,8 @@ func TestUnmarshalStringBool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, true, y)
 }
 
 func TestUnmarshalStringBoolError(t *testing.T) {
@@ -623,6 +677,7 @@ func TestUnmarshalStringBoolError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringInt(t *testing.T) {
@@ -637,6 +692,8 @@ func TestUnmarshalStringInt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, -1234567, y)
 }
 
 func TestUnmarshalStringIntError(t *testing.T) {
@@ -651,6 +708,7 @@ func TestUnmarshalStringIntError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringUint(t *testing.T) {
@@ -665,6 +723,8 @@ func TestUnmarshalStringUint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, uint(1234567), y)
 }
 
 func TestUnmarshalStringUintError(t *testing.T) {
@@ -679,6 +739,7 @@ func TestUnmarshalStringUintError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringFloat(t *testing.T) {
@@ -693,6 +754,8 @@ func TestUnmarshalStringFloat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, float32(123.4567), y)
 }
 
 func TestUnmarshalStringFloatError(t *testing.T) {
@@ -707,6 +770,7 @@ func TestUnmarshalStringFloatError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringPtr(t *testing.T) {
@@ -721,6 +785,8 @@ func TestUnmarshalStringPtr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, *y)
 }
 
 func TestUnmarshalStringInterface(t *testing.T) {
@@ -735,6 +801,8 @@ func TestUnmarshalStringInterface(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y.(string))
 }
 
 func TestUnmarshalStringInterfaceError(t *testing.T) {
@@ -749,6 +817,7 @@ func TestUnmarshalStringInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalStringIncompatibleError(t *testing.T) {
@@ -763,6 +832,7 @@ func TestUnmarshalStringIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalBinary(t *testing.T) {
@@ -777,6 +847,8 @@ func TestMarshalBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalBinarySliceError(t *testing.T) {
@@ -791,6 +863,7 @@ func TestUnmarshalBinarySliceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalBinaryInterface(t *testing.T) {
@@ -805,6 +878,8 @@ func TestUnmarshalBinaryInterface(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y.([]byte))
 }
 
 func TestUnmarshalBinaryInterfaceError(t *testing.T) {
@@ -819,6 +894,7 @@ func TestUnmarshalBinaryInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalBinaryStructError(t *testing.T) {
@@ -833,6 +909,7 @@ func TestUnmarshalBinaryStructError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalBinaryIncompatibleError(t *testing.T) {
@@ -847,6 +924,7 @@ func TestUnmarshalBinaryIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalArray(t *testing.T) {
@@ -861,6 +939,8 @@ func TestMarshalArray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalArrayArraySmall(t *testing.T) {
@@ -870,11 +950,13 @@ func TestUnmarshalArrayArraySmall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	y := TestArray16
+	var y [65535]bool
 	err = Unmarshal(data, &y)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x[:255], y[:255])
 }
 
 func TestUnmarshalArrayArrayLargeError(t *testing.T) {
@@ -889,6 +971,7 @@ func TestUnmarshalArrayArrayLargeError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalArrayArrayIncompatibleError(t *testing.T) {
@@ -903,6 +986,7 @@ func TestUnmarshalArrayArrayIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalArraySlice(t *testing.T) {
@@ -917,6 +1001,8 @@ func TestUnmarshalArraySlice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x[:255], y)
 }
 
 func TestUnmarshalArraySliceIncompatibleError(t *testing.T) {
@@ -931,6 +1017,7 @@ func TestUnmarshalArraySliceIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalArrayPtr(t *testing.T) {
@@ -945,6 +1032,8 @@ func TestUnmarshalArrayPtr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, *y)
 }
 
 func TestUnmarshalArrayInterface(t *testing.T) {
@@ -959,6 +1048,12 @@ func TestUnmarshalArrayInterface(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	var z [255]bool
+	for k, v := range y.([]interface{}) {
+		z[k] = v.(bool)
+	}
+	assertEqual(t, x, z)
 }
 
 func TestUnmarshalArrayInterfaceError(t *testing.T) {
@@ -973,6 +1068,7 @@ func TestUnmarshalArrayInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalArrayIncompatibleError(t *testing.T) {
@@ -987,6 +1083,7 @@ func TestUnmarshalArrayIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalObject(t *testing.T) {
@@ -1001,6 +1098,8 @@ func TestMarshalObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalObjectMapDirty(t *testing.T) {
@@ -1015,6 +1114,8 @@ func TestUnmarshalObjectMapDirty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalObjectMapError(t *testing.T) {
@@ -1029,6 +1130,7 @@ func TestUnmarshalObjectMapError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalObjectStructEmptyError(t *testing.T) {
@@ -1043,6 +1145,7 @@ func TestUnmarshalObjectStructEmptyError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalObjectStructIncompatibleError(t *testing.T) {
@@ -1057,6 +1160,7 @@ func TestUnmarshalObjectStructIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalObjectInterface(t *testing.T) {
@@ -1071,6 +1175,12 @@ func TestUnmarshalObjectInterface(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	z := make(map[uint8]bool)
+	for k, v := range y.(map[interface{}]interface{}) {
+		z[uint8(k.(uint64))] = v.(bool)
+	}
+	assertEqual(t, x, z)
 }
 
 func TestUnmarshalObjectInterfaceError(t *testing.T) {
@@ -1085,6 +1195,7 @@ func TestUnmarshalObjectInterfaceError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestUnmarshalObjectIncompatibleError(t *testing.T) {
@@ -1099,6 +1210,7 @@ func TestUnmarshalObjectIncompatibleError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 }
 
 func TestMarshalMarshaler(t *testing.T) {
@@ -1113,6 +1225,8 @@ func TestMarshalMarshaler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestMarshalMarshalerError(t *testing.T) {
@@ -1151,6 +1265,8 @@ func TestMarshalIncompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
 }
 
 func TestUnmarshalValueError(t *testing.T) {
@@ -1165,19 +1281,50 @@ func TestUnmarshalValueError(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
 
 	var y2 *int
 	err = Unmarshal(data, y2)
 	if err == nil {
 		t.FailNow()
 	}
+	_ = err.Error()
+}
+
+func TestUnmarshalEmptyError(t *testing.T) {
+	var y int
+	err := Unmarshal([]byte{}, &y)
+	if err == nil {
+		t.FailNow()
+	}
+	_ = err.Error()
+}
+
+func TestUnmarshalFormatError(t *testing.T) {
+	var err error
+	types := []byte{
+		tInt8, tInt16, tInt32, tInt64, tUint8, tUint16, tUint32, tUint64, tFloat32, tFloat64,
+		tString8, tString16, tString32, tBinary8, tBinary16, tBinary32,
+		tArray8, tArray16, tArray32, tObject8, tObject16, tObject32}
+
+	var y int
+	for _, typ := range types {
+		err = Unmarshal([]byte{typ}, &y)
+		if err == nil {
+			t.FailNow()
+		}
+		_ = err.Error()
+	}
+
+	// unknown typ should unmarshal to nil
+	err = Unmarshal([]byte{0xFF}, &y)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestDump(t *testing.T) {
-	randBytes := make([]byte, 16)
-	rand.Read(randBytes)
-	n := hex.EncodeToString(randBytes)
-	fn := filepath.Join(os.TempDir(), n)
+	fn := randomFilename()
 	defer os.Remove(fn)
 
 	x := NewTestInput()
@@ -1191,4 +1338,55 @@ func TestDump(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assertEqual(t, x, y)
+}
+
+func TestDumpCreateError(t *testing.T) {
+	fn := randomFilename()
+	err := os.Mkdir(fn, os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fn)
+
+	x := NewTestInputBool()
+	err = Dump(fn, x)
+	if err == nil {
+		t.FailNow()
+	}
+	_ = err.Error()
+}
+
+func TestDumpWriteError(t *testing.T) {
+	fn := randomFilename()
+	f, err := os.Create(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	defer os.Remove(fn)
+
+	x := NewTestInputBool()
+	enc := NewEncoder(f)
+	err = enc.Encode(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	err = enc.Encode(x)
+	if err == nil {
+		t.FailNow()
+	}
+	_ = err.Error()
+}
+
+func TestLoadOpenError(t *testing.T) {
+	var y int
+	fn := randomFilename()
+	err := Load(fn, &y)
+	if err == nil {
+		t.FailNow()
+	}
+	_ = err.Error()
 }
