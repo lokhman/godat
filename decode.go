@@ -544,14 +544,9 @@ func (d *Decoder) Decode(v interface{}) error {
 }
 
 func indirect(v reflect.Value) reflect.Value {
-	if v.Kind() != reflect.Ptr {
+	if v := v.Elem(); v.IsValid() {
 		return v
 	}
-
-	t := v.Type().Elem()
-	if e := v.Elem(); e.IsValid() {
-		return e
-	}
-	v.Set(reflect.New(t))
+	v.Set(reflect.New(v.Type().Elem()))
 	return v.Elem()
 }
