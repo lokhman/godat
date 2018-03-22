@@ -1,4 +1,4 @@
-# godat - Simple data serializer for Go
+# godat - Simple data serializer for Go 1.7+
 
 [![Build Status](https://travis-ci.org/lokhman/godat.svg?branch=master)](https://travis-ci.org/lokhman/godat)
 [![codecov](https://codecov.io/gh/lokhman/godat/branch/master/graph/badge.svg)](https://codecov.io/gh/lokhman/godat)
@@ -10,22 +10,23 @@
 
 ## Usage
 
-    package main
-    
     import "github.com/lokhman/godat"
     
     func main() {
+        var anyData = ...
+        var unserializedData ...
+    
         serializedBytes, err := godat.Marshal(anyData)
         if err != nil {
-            log.Fatal(err)
+            panic(err)
         }
         
-        err = godat.Unmarshal(serializedBytes, &unserializedValue)
+        err = godat.Unmarshal(serializedBytes, &unserializedData)
         if err != nil {
-            log.Fatal(err)
+            panic(err)
         }
         
-        // anyData == unserializedValue
+        // anyData == unserializedData
 	}
 	
 ## Tests
