@@ -1342,6 +1342,31 @@ func TestDump(t *testing.T) {
 	assertEqual(t, x, y)
 }
 
+func TestDumpMultiple(t *testing.T) {
+	fn := randomFilename()
+	defer os.Remove(fn)
+
+	x1 := NewTestInputBool()
+	x2 := NewTestInputString()
+	x3 := NewTestInputObject()
+	err := Dump(fn, x1, x2, x3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	y1 := &TestInputBool{}
+	y2 := &TestInputString{}
+	y3 := &TestInputObject{}
+	err = Load(fn, &y1, &y2, &y3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertEqual(t, x1, y1)
+	assertEqual(t, x2, y2)
+	assertEqual(t, x3, y3)
+}
+
 func TestDumpCreateError(t *testing.T) {
 	fn := randomFilename()
 	err := os.Mkdir(fn, os.ModePerm)
